@@ -20,8 +20,7 @@ M4 100%   Mouse 92%
 | Value | Meaning |
 |---|---|
 | `82%` | battery level (while the mouse charges: an estimated level, see below) |
-| `⚡` | charging (devices that report a charge state; the mouse never shows it, see below) |
-| `⚡100%` | full and on the cable |
+| `100%` | full (e.g. the mouse on the cable) |
 | `—` | not connected, switched off or asleep |
 | `?` | no value yet, or the device does not respond |
 
