@@ -19,8 +19,8 @@ M4 100%   Mouse 92%
 
 | Value | Meaning |
 |---|---|
-| `82%` | battery level |
-| `⚡` | charging (mice that only report their voltage show no percentage while charging) |
+| `82%` | battery level (while the mouse charges: an estimated level, see below) |
+| `⚡` | charging (devices that report a charge state; the mouse never shows it, see below) |
 | `⚡100%` | full and on the cable |
 | `—` | not connected, switched off or asleep |
 | `?` | no value yet, or the device does not respond |
@@ -29,8 +29,13 @@ The value turns **red** when the battery is at or below the warning threshold (d
 charging. Hovering over the TrafficMonitor display shows a tooltip with the full device name, the value and the
 time of the reading.
 
-For mice that only report their voltage (e.g. G502 LIGHTSPEED) the percentage is an estimate. Windows reports the
-MOMENTUM 4's battery level in 10% steps.
+For mice that only report their voltage (e.g. G502 LIGHTSPEED) the percentage is an estimate. Under charging
+current the voltage reads higher than at rest, so while charging the mouse shows no `⚡` but an estimated level
+(green as a charging hint): starting from the charge-compensated voltage (offset 137 mV, calibrated on the
+G502), the shown value creeps up towards full over the estimated charge time, so it does not stick near full
+(where the voltage barely rises while the battery keeps filling). `100%` appears only once the mouse itself
+reports "full". It is an approximation and can differ from the device's own gauge (e.g. G Hub). Windows reports
+the MOMENTUM 4's battery level in 10% steps.
 
 ## Installation
 
@@ -60,7 +65,7 @@ start; it explains every setting and can also be edited directly:
 | `[General]` | `UpdateInterval` | `60` | poll interval in seconds (15–3600) |
 | | `ShowDisconnected` | `1` | `—` for a disconnected device (`0` = empty) |
 | | `ShowPercentSign` | `1` | `82%` (`0` = `82`) |
-| | `ShowCharging` | `1` | `⚡` while charging |
+| | `ShowCharging` | `1` | `⚡` while charging (the mouse never shows it) |
 | | `LowBatteryWarning` | `15` | notification and red value at or below this level (`0` = off) |
 | | `Colors` | `1` | red/green value; `0` = TrafficMonitor draws the item without colors |
 | | `VerboseLogging` | `0` | `1` = write every poll cycle to the log |

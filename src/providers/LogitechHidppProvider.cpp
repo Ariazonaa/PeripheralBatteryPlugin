@@ -13,6 +13,19 @@ namespace
             [](wchar_t c) { return static_cast<wchar_t>(std::towlower(c)); });
         return text;
     }
+
+    // While charging, the measured voltage sits above the resting voltage (charge current plus the
+    // cell's overpotential), so mapping it straight through the discharge curve pins the level near
+    // 100%. Subtract this offset before the mapping to get a usable, rising estimate instead.
+    // One-point calibration on a G502 LIGHTSPEED: 4204 mV while charging matched 90% in G Hub, and
+    // 90% sits at 4067 mV on the resting curve -> 137 mV. Approximate; the real charge gauge is
+    // internal to the device and not exposed over HID++.
+    constexpr int kChargingVoltageOffsetMv = 137;
+
+    // Near full the voltage stops rising while the battery keeps filling (CV phase), so the voltage
+    // estimate would stick (e.g. around 90%). Assume a full charge (0 -> 100%) takes about this long
+    // and let the shown value creep up accordingly, scaled to how empty it was when charging began.
+    constexpr double kEstimatedFullChargeMinutes = 150.0;
 }
 
 LogitechHidppProvider::LogitechHidppProvider(std::wstring nameContains, hidpp::LinkRegistry* registry)
@@ -128,27 +141,53 @@ void LogitechHidppProvider::Refresh()
 
         if (battery && battery->charge == hidpp::ChargeState::Charging && battery->millivolts)
         {
-            // The voltage under charging current is above the resting voltage and says nothing about
-            // the charge level; so no percentage while charging, only the charging indicator.
+            // No real charge level while charging: the voltage is inflated under charge current and,
+            // near full, barely rises while the battery keeps filling. Start from the charge-
+            // compensated voltage estimate and, while the session runs, creep the shown value up
+            // towards full over the estimated charge time, so it does not stick (e.g. at ~90%).
+            // 100% is reserved for the device's own "full". Approximate by design; the true gauge is
+            // internal to the device (e.g. G Hub counts the charge current), not exposed over HID++.
+            const int voltageEstimate = hidpp::MillivoltsToPercent(*battery->millivolts - kChargingVoltageOffsetMv);
+            const auto now = std::chrono::steady_clock::now();
+            if (!chargeStart_)
+            {
+                chargeStart_ = now;
+                chargeStartPercent_ = voltageEstimate;
+            }
+            int shown = voltageEstimate;
+            if (chargeStartPercent_ < 100)
+            {
+                const double fullMinutes = kEstimatedFullChargeMinutes * (100 - chargeStartPercent_) / 100.0;
+                const double elapsedMinutes =
+                    std::chrono::duration<double, std::ratio<60>>(now - *chargeStart_).count();
+                const double fraction = fullMinutes > 0.0 ? std::min(1.0, elapsedMinutes / fullMinutes) : 1.0;
+                const int ramp = chargeStartPercent_
+                    + static_cast<int>((100 - chargeStartPercent_) * fraction + 0.5);
+                shown = std::max(shown, ramp);
+            }
             status.available = true;
             status.state = BatteryState::Charging;
+            status.percentage = std::min(shown, 99);
         }
         else if (battery && battery->charge == hidpp::ChargeState::Full)
         {
             status.available = true;
             status.percentage = 100;
             status.state = BatteryState::Full;
+            chargeStart_.reset();
         }
         else if (battery && battery->percentage)
         {
             status.available = true;
             status.percentage = *battery->percentage;
             status.state = BatteryState::Discharging;
+            chargeStart_.reset();
         }
         else
         {
             status.state = BatteryState::Unknown;
             status.error = match->error.empty() ? L"no battery value" : match->error;
+            chargeStart_.reset();
         }
     }
     status_ = std::move(status);

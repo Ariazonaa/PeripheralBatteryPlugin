@@ -59,6 +59,14 @@ protected:
     virtual BatteryStatus ReadStatus() const = 0;
     virtual std::wstring ReadLabel(const DisplayOptions& options) const = 0;
 
+    // Whether this item may draw the "⚡" while charging. The mouse overrides this to false: it only
+    // measures its voltage, which under charging current gives no real level, so it shows the last
+    // known percentage instead of the indicator. Default: follow the global ShowCharging option.
+    virtual bool WantsChargingIndicator() const { return true; }
+
+    // The global display options with the item-specific charging indicator applied.
+    DisplayOptions EffectiveDisplayOptions() const;
+
     const BatteryManager& manager_;
 
 private:

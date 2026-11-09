@@ -28,11 +28,19 @@ BatteryItem::BatteryItem(const BatteryManager& manager, const DrawContext& drawC
 {
 }
 
+DisplayOptions BatteryItem::EffectiveDisplayOptions() const
+{
+    DisplayOptions options = manager_.GetDisplayOptions();
+    if (!WantsChargingIndicator())
+        options.showCharging = false;      // e.g. the mouse: show the percentage, never the "⚡"
+    return options;
+}
+
 const wchar_t* BatteryItem::GetItemValueText() const
 {
     try
     {
-        valueText_ = FormatValue(ReadStatus(), manager_.GetDisplayOptions());
+        valueText_ = FormatValue(ReadStatus(), EffectiveDisplayOptions());
         return valueText_.c_str();
     }
     catch (...)
@@ -45,7 +53,7 @@ const wchar_t* BatteryItem::GetItemValueSampleText() const
 {
     try
     {
-        return SampleText(manager_.GetDisplayOptions());
+        return SampleText(EffectiveDisplayOptions());
     }
     catch (...)
     {
@@ -79,7 +87,7 @@ int BatteryItem::GetItemWidthEx(void* hDC) const
         const HDC dc = static_cast<HDC>(hDC);
         if (dc == nullptr)
             return 0;
-        const DisplayOptions options = manager_.GetDisplayOptions();
+        const DisplayOptions options = EffectiveDisplayOptions();
         return MeasureWidth(dc, ReadLabel(options), SampleText(options));
     }
     catch (...)
@@ -96,7 +104,7 @@ void BatteryItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mode
         const HDC dc = static_cast<HDC>(hDC);
         if (dc == nullptr || w <= 0 || h <= 0)
             return;
-        const DisplayOptions options = manager_.GetDisplayOptions();
+        const DisplayOptions options = EffectiveDisplayOptions();
         const BatteryStatus status = ReadStatus();
         const COLORREF normal = drawContext_.hasValueColor ? drawContext_.valueColor : GetTextColor(dc);
         // The main window has only one text color (EI_LABEL_TEXT_COLOR is not sent there).

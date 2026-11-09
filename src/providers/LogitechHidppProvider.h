@@ -1,6 +1,8 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
+#include <optional>
 
 #include "battery/IBatteryProvider.h"
 #include "hidpp/LinkRegistry.h"
@@ -30,4 +32,10 @@ private:
     BatteryStatus status_;
     uint16_t lastProductId_ = 0;    // Where the device was last found
     uint8_t lastSlot_ = 0;
+
+    // Charging estimate (voltage gives no real level near full): while a charging session runs, the
+    // shown value creeps from the voltage estimate at its start up towards full over an estimated
+    // charge time. Reset whenever a non-charging reading arrives.
+    std::optional<std::chrono::steady_clock::time_point> chargeStart_;
+    int chargeStartPercent_ = 0;
 };
