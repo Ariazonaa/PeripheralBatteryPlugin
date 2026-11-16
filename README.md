@@ -118,7 +118,8 @@ Output: `bin\x64\Release\PeripheralBatteryPlugin.dll` and `bin\x64\Release\tools
 
 ## Contributing
 
-Issues and pull requests are welcome – bug reports, fixes, support for more devices, translations.
+Issues and pull requests are welcome – bug reports, fixes, support for more devices. The details are in
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 - **Bug reports:** please describe what the taskbar shows and attach the output of `BatteryProbe.exe --diag`.
   It contains no addresses or device IDs (those only appear with `--include-sensitive`).
