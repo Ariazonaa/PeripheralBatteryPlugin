@@ -55,23 +55,77 @@ void LogitechHidppProvider::Refresh()
 
     const std::wstring needle = ToLower(nameContains_);
     const LogitechDeviceReport* match = nullptr;
-    for (const auto& device : scan.devices)
+
+    // G502 LIGHTSPEED has two USB identities: C539/receiver slot and C08D/wired (index FF).
+    // A strict sticky receiver identity prevents switching to the corded device: once C539/1
+    // was selected, C08D/FF was ignored forever, even if it answered with a battery value.
+    // Prefer the wired identity while it responds; fall back to the previously selected receiver.
+    // Do not permit an unrelated Logitech device to take over while the mouse is asleep.
+    constexpr uint16_t kG502ReceiverPid = 0xC539;
+    constexpr uint16_t kG502CordedPid = 0xC08D;
+    constexpr uint8_t kCordedIndex = 0xFF;
+
+    auto eligible = [&](const LogitechDeviceReport& device)
     {
-        const bool nameMatches = needle.empty() || ToLower(device.name).find(needle) != std::wstring::npos;
-        if (!nameMatches)
-            continue;
-        // Without a name filter, only devices with a battery (e.g. no wired keyboard) – and keep the one
-        // chosen once: while the mouse is asleep, no other Logitech device with a battery (e.g. a
-        // wireless keyboard) should take its place. Applies until restart or until the configuration changes.
-        if (needle.empty() && !(device.battery && device.battery->percentage))
-            continue;
-        if (needle.empty() && lastSlot_ != 0
-            && (device.productId != lastProductId_ || device.deviceIndex != lastSlot_))
+        if (!needle.empty() && ToLower(device.name).find(needle) == std::wstring::npos)
+            return false;
+        // Never switch to a device whose battery query did not succeed.
+        return device.battery && device.battery->percentage.has_value();
+    };
+
+    const bool g502Selected = (lastProductId_ == kG502ReceiverPid && lastSlot_ != 0)
+        || (lastProductId_ == kG502CordedPid && lastSlot_ == kCordedIndex);
+
+    // For this specific known wired/wireless pair, choose the corded connection first.
+    // On first startup with an empty filter, keep the original first-device behavior.
+    if (g502Selected)
+    {
+        for (const auto& device : scan.devices)
         {
-            continue;
+            if (device.productId == kG502CordedPid && device.deviceIndex == kCordedIndex && eligible(device))
+            {
+                match = &device;
+                break;
+            }
         }
-        match = &device;
-        break;
+    }
+
+    if (!match && lastSlot_ != 0)
+    {
+        for (const auto& device : scan.devices)
+        {
+            if (device.productId == lastProductId_ && device.deviceIndex == lastSlot_ && eligible(device))
+            {
+                match = &device;
+                break;
+            }
+        }
+    }
+
+    // A known G502 that was last seen on the cable may return on its LIGHTSPEED receiver.
+    if (!match && g502Selected)
+    {
+        for (const auto& device : scan.devices)
+        {
+            if (device.productId == kG502ReceiverPid && device.deviceIndex != 0
+                && device.deviceIndex != kCordedIndex && eligible(device))
+            {
+                match = &device;
+                break;
+            }
+        }
+    }
+
+    if (!match && lastSlot_ == 0)
+    {
+        for (const auto& device : scan.devices)
+        {
+            if (eligible(device))
+            {
+                match = &device;
+                break;
+            }
+        }
     }
 
     if (match == nullptr)
@@ -116,6 +170,10 @@ void LogitechHidppProvider::Refresh()
         swprintf_s(id, L"046D:%04X/%u", match->productId, match->deviceIndex);
         status.deviceId = id;
 
+        // Charging estimates are connection-specific. A switch between USB and the receiver
+        // must not carry the previous connection's charging timer into the new one.
+        if (lastProductId_ != match->productId || lastSlot_ != match->deviceIndex)
+            chargeStart_.reset();
         lastProductId_ = match->productId;
         lastSlot_ = match->deviceIndex;
         if (registry_ && match->battery)
