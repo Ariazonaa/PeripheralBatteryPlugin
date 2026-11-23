@@ -32,6 +32,7 @@ private:
     BatteryStatus status_;
     uint16_t lastProductId_ = 0;    // Where the device was last found
     uint8_t lastSlot_ = 0;
+    std::wstring lastName_;         // HID++ name of the last found device, to follow it between cable and receiver
 
     // Charging estimate (voltage gives no real level near full): while a charging session runs, the
     // shown value creeps from the voltage estimate at its start up towards full over an estimated
