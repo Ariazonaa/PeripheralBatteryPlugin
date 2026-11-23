@@ -26,6 +26,23 @@ namespace
     // estimate would stick (e.g. around 90%). Assume a full charge (0 -> 100%) takes about this long
     // and let the shown value creep up accordingly, scaled to how empty it was when charging began.
     constexpr double kEstimatedFullChargeMinutes = 150.0;
+
+    constexpr uint8_t kWiredIndex = 0xFF;
+
+    // G502 LIGHTSPEED: wired it is its own device (PID C08D, index 0xFF), wireless it sits in a slot of the
+    // LIGHTSPEED receiver (PID C539). Known pair, in case the HID++ name differs between the two. C539 is
+    // the generic LIGHTSPEED receiver other mice use as well, hence the name check on both sides.
+    constexpr uint16_t kLightspeedReceiverPid = 0xC539;
+    constexpr uint16_t kG502LightspeedWiredPid = 0xC08D;
+
+    bool IsG502LightspeedIdentity(uint16_t productId, uint8_t deviceIndex, const std::wstring& name)
+    {
+        if (ToLower(name).find(L"g502") == std::wstring::npos)
+            return false;
+        if (deviceIndex == kWiredIndex)
+            return productId == kG502LightspeedWiredPid;
+        return productId == kLightspeedReceiverPid && deviceIndex != 0;
+    }
 }
 
 LogitechHidppProvider::LogitechHidppProvider(std::wstring nameContains, hidpp::LinkRegistry* registry)
@@ -55,23 +72,67 @@ void LogitechHidppProvider::Refresh()
 
     const std::wstring needle = ToLower(nameContains_);
     const LogitechDeviceReport* match = nullptr;
-    for (const auto& device : scan.devices)
+    if (!needle.empty())
     {
-        const bool nameMatches = needle.empty() || ToLower(device.name).find(needle) != std::wstring::npos;
-        if (!nameMatches)
-            continue;
+        // Name filter: the first device whose name contains it. Wired and receiver identity of the same
+        // mouse both match, so switching between cable and receiver needs no further handling here.
+        for (const auto& device : scan.devices)
+        {
+            if (ToLower(device.name).find(needle) != std::wstring::npos)
+            {
+                match = &device;
+                break;
+            }
+        }
+    }
+    else
+    {
         // Without a name filter, only devices with a battery (e.g. no wired keyboard) – and keep the one
         // chosen once: while the mouse is asleep, no other Logitech device with a battery (e.g. a
         // wireless keyboard) should take its place. Applies until restart or until the configuration changes.
-        if (needle.empty() && !(device.battery && device.battery->percentage))
-            continue;
-        if (needle.empty() && lastSlot_ != 0
-            && (device.productId != lastProductId_ || device.deviceIndex != lastSlot_))
+        // "The one" is the device, not its USB identity: a mouse that also runs on the cable shows up as
+        // the wired device (index 0xFF) while plugged in and under its receiver's PID and slot otherwise.
+        // Follow it across that switch and prefer the wired identity while it answers.
+        const std::wstring lastName = ToLower(lastName_);
+        const bool lastIsG502 = IsG502LightspeedIdentity(lastProductId_, lastSlot_, lastName_);
+        auto isRemembered = [&](const LogitechDeviceReport& device)
         {
-            continue;
+            if (device.productId == lastProductId_ && device.deviceIndex == lastSlot_)
+                return true;
+            // Only across the connection type (cable <-> receiver), never from one receiver slot to
+            // another: two devices of the same model must not take each other's place.
+            if ((device.deviceIndex == kWiredIndex) == (lastSlot_ == kWiredIndex))
+                return false;
+            if (!lastName.empty() && ToLower(device.name) == lastName)
+                return true;
+            return lastIsG502 && IsG502LightspeedIdentity(device.productId, device.deviceIndex, device.name);
+        };
+
+        const LogitechDeviceReport* sameIdentity = nullptr;
+        const LogitechDeviceReport* otherIdentity = nullptr;
+        for (const auto& device : scan.devices)
+        {
+            if (!(device.battery && device.battery->percentage))
+                continue;
+            if (lastSlot_ == 0)
+            {
+                match = &device;    // Nothing chosen yet: the first device with a battery
+                break;
+            }
+            if (!isRemembered(device))
+                continue;
+            if (device.deviceIndex == kWiredIndex)
+            {
+                match = &device;
+                break;
+            }
+            if (device.productId == lastProductId_ && device.deviceIndex == lastSlot_)
+                sameIdentity = &device;
+            else if (otherIdentity == nullptr)
+                otherIdentity = &device;
         }
-        match = &device;
-        break;
+        if (match == nullptr)
+            match = sameIdentity != nullptr ? sameIdentity : otherIdentity;
     }
 
     if (match == nullptr)
@@ -116,8 +177,14 @@ void LogitechHidppProvider::Refresh()
         swprintf_s(id, L"046D:%04X/%u", match->productId, match->deviceIndex);
         status.deviceId = id;
 
+        // Charging estimates are connection-specific. A switch between USB and the receiver
+        // must not carry the previous connection's charging timer into the new one.
+        if (lastProductId_ != match->productId || lastSlot_ != match->deviceIndex)
+            chargeStart_.reset();
         lastProductId_ = match->productId;
         lastSlot_ = match->deviceIndex;
+        if (!match->name.empty())
+            lastName_ = match->name;
         if (registry_ && match->battery)
             registry_->SetBatteryIndex(match->productId, match->deviceIndex, match->battery->featureIndex);
 
