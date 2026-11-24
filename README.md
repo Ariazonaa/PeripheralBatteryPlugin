@@ -11,9 +11,7 @@ level of peripheral devices as separate items in the taskbar:
 | **Headphones Battery** | Bluetooth battery level as known to Windows – no vendor app needed | Sennheiser MOMENTUM 4 |
 | **Mouse Battery** | Logitech mouse queried directly via HID++ through the LIGHTSPEED / Unifying / Bolt receiver – no G Hub needed | Logitech G502 LIGHTSPEED |
 
-```
-M4 100%   Mouse 92%
-```
+![Taskbar with Headphones Battery and Mouse Battery](docs/taskbar.png)
 
 ## Display
 
