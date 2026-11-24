@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "resource.h"
+#include "utils/Lang.h"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -255,5 +256,8 @@ bool WriteDefaultConfigIfMissing(const std::wstring& path)
     DWORD written = 0;
     const bool ok = WriteFile(file, data, size, &written, nullptr) && written == size;
     CloseHandle(file);
+    // The template is English; a new INI in a Chinese TrafficMonitor gets the Chinese mouse label.
+    if (ok && lang::IsChinese())
+        WritePrivateProfileStringW(L"Mouse", L"Label", lang::Tr(lang::Text::MouseLabelIni), path.c_str());
     return ok;
 }

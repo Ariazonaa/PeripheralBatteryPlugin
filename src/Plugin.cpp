@@ -5,6 +5,7 @@
 #include "Version.h"
 #include "bluetooth/BluetoothScanner.h"
 #include "ui/OptionsDialog.h"
+#include "utils/Lang.h"
 
 namespace
 {
@@ -61,9 +62,9 @@ const wchar_t* PeripheralBatteryPlugin::GetInfo(PluginInfoIndex index)
     switch (index)
     {
     case TMI_NAME:
-        return L"Peripheral Battery";
+        return lang::Tr(lang::Text::PluginName);
     case TMI_DESCRIPTION:
-        return L"Shows the battery level of peripheral devices (headphones, mouse) in the taskbar.";
+        return lang::Tr(lang::Text::PluginDescription);
     case TMI_AUTHOR:
         return L"Ariazonaa";
     case TMI_COPYRIGHT:
@@ -123,6 +124,9 @@ void PeripheralBatteryPlugin::OnInitialize(ITrafficMonitor* pApp)
     // Arrives at load time from the UI thread (CPluginManager::LoadPlugins in InitInstance).
     try
     {
+        // TrafficMonitor's language setting (0 = follow Windows); part of ITrafficMonitor since its first version.
+        if (pApp != nullptr)
+            lang::SetLanguage(pApp->GetLanguageId());
         if (notifier_.Initialize(pApp))
             manager_.SetNotifier([this](std::wstring message) { notifier_.Post(std::move(message)); });
     }
@@ -186,12 +190,12 @@ const wchar_t* PeripheralBatteryPlugin::GetTooltipInfo()
     {
         tooltip_.clear();
         if (manager_.IsHeadphonesEnabled())
-            tooltip_ += BatteryItem::FormatTooltipLine(L"Headphones", manager_.GetHeadphonesStatus());
+            tooltip_ += BatteryItem::FormatTooltipLine(lang::Tr(lang::Text::Headphones), manager_.GetHeadphonesStatus());
         if (manager_.IsMouseEnabled())
         {
             if (!tooltip_.empty())
                 tooltip_ += L"\r\n";
-            tooltip_ += BatteryItem::FormatTooltipLine(L"Mouse", manager_.GetMouseStatus());
+            tooltip_ += BatteryItem::FormatTooltipLine(lang::Tr(lang::Text::Mouse), manager_.GetMouseStatus());
         }
         return tooltip_.c_str();
     }

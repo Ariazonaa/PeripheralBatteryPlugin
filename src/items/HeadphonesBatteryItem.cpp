@@ -1,10 +1,11 @@
 #include "items/HeadphonesBatteryItem.h"
 
 #include "battery/BatteryManager.h"
+#include "utils/Lang.h"
 
 const wchar_t* HeadphonesBatteryItem::GetItemName() const
 {
-    return L"Headphones Battery";
+    return lang::Tr(lang::Text::HeadphonesItem);
 }
 
 const wchar_t* HeadphonesBatteryItem::GetItemId() const

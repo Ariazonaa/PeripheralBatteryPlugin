@@ -7,22 +7,27 @@
 #include <memory>
 
 #include "resource.h"
+#include "utils/Lang.h"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
 namespace
 {
     constexpr UINT kScanDone = WM_APP + 10;     // lParam: std::vector<std::wstring>*, then owned by the window
-    constexpr wchar_t kTitle[] = L"Peripheral Battery";
+
+    const wchar_t* Title()
+    {
+        return lang::Tr(lang::Text::PluginName);
+    }
 
     struct ProviderChoice
     {
         const wchar_t* id;      // value in the INI
-        const wchar_t* text;    // display text
+        lang::Text text;        // display text
     };
     constexpr ProviderChoice kProviders[] = {
-        { L"WindowsBluetooth", L"Windows Bluetooth" },
-        { L"LogitechHidpp", L"Logitech (HID++)" },
+        { L"WindowsBluetooth", lang::Text::ProviderBluetooth },
+        { L"LogitechHidpp", lang::Text::ProviderLogitech },
     };
 
     struct DeviceControls
@@ -92,7 +97,7 @@ namespace
         LRESULT selected = -1;
         for (const ProviderChoice& choice : kProviders)
         {
-            const LRESULT index = SendMessageW(combo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(choice.text));
+            const LRESULT index = SendMessageW(combo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(lang::Tr(choice.text)));
             if (SameId(current, choice.id))
                 selected = index;
         }
@@ -100,7 +105,7 @@ namespace
         if (selected < 0)
         {
             state.otherProvider[controls.provider] = current;
-            const std::wstring text = current.empty() ? L"(none)" : current;
+            const std::wstring text = current.empty() ? std::wstring(lang::Tr(lang::Text::ProviderNone)) : current;
             selected = SendMessageW(combo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(text.c_str()));
         }
         SendMessageW(combo, CB_SETCURSEL, selected, 0);
@@ -247,7 +252,7 @@ namespace
             value = static_cast<int>(number);
             return true;
         }
-        MessageBoxW(dialog, message, kTitle, MB_ICONWARNING | MB_OK);
+        MessageBoxW(dialog, message, Title(), MB_ICONWARNING | MB_OK);
         const HWND control = GetDlgItem(dialog, id);
         SetFocus(control);
         SendMessageW(control, EM_SETSEL, 0, -1);
@@ -259,9 +264,9 @@ namespace
     {
         Config result = state.context->config;
         if (!ReadNumber(dialog, IDC_INTERVAL, Config::kMinInterval, Config::kMaxInterval,
-                L"The poll interval must be between 15 and 3600 seconds.", result.updateIntervalSeconds)
+                lang::Tr(lang::Text::IntervalRange), result.updateIntervalSeconds)
             || !ReadNumber(dialog, IDC_LOW_WARNING, 0, 100,
-                L"The warning threshold must be between 0 and 100 percent (0 = no warning).", result.lowBatteryWarning))
+                lang::Tr(lang::Text::WarningRange), result.lowBatteryWarning))
         {
             return false;
         }
@@ -291,7 +296,7 @@ namespace
         std::wstring error;
         if (!state.context->save || !state.context->save(result, error))
         {
-            MessageBoxW(dialog, (L"The settings could not be saved.\n\n" + error).c_str(), kTitle,
+            MessageBoxW(dialog, (lang::Tr(lang::Text::SaveFailed) + (L"\n\n" + error)).c_str(), Title(),
                 MB_ICONERROR | MB_OK);
             return false;
         }
@@ -399,7 +404,16 @@ bool RunOptionsDialog(HWND owner, const OptionsDialogContext& context)
 {
     DialogState state;
     state.context = &context;
-    const INT_PTR result = DialogBoxParamW(reinterpret_cast<HINSTANCE>(&__ImageBase), MAKEINTRESOURCEW(IDD_OPTIONS),
-        owner, DialogProc, reinterpret_cast<LPARAM>(&state));
+    const HINSTANCE module = reinterpret_cast<HINSTANCE>(&__ImageBase);
+    // Template in TrafficMonitor's language. DialogBoxParamW would pick it by the Windows UI language,
+    // which need not match TrafficMonitor's setting.
+    HRSRC resource = FindResourceExW(module, RT_DIALOG, MAKEINTRESOURCEW(IDD_OPTIONS), lang::DialogLanguage());
+    if (resource == nullptr)
+        resource = FindResourceExW(module, RT_DIALOG, MAKEINTRESOURCEW(IDD_OPTIONS), MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
+    const HGLOBAL loaded = resource != nullptr ? LoadResource(module, resource) : nullptr;
+    const auto* dialogTemplate = loaded != nullptr ? static_cast<const DLGTEMPLATE*>(LockResource(loaded)) : nullptr;
+    const INT_PTR result = dialogTemplate != nullptr
+        ? DialogBoxIndirectParamW(module, dialogTemplate, owner, DialogProc, reinterpret_cast<LPARAM>(&state))
+        : DialogBoxParamW(module, MAKEINTRESOURCEW(IDD_OPTIONS), owner, DialogProc, reinterpret_cast<LPARAM>(&state));
     return result == IDOK;
 }

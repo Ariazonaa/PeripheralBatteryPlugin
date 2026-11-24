@@ -75,10 +75,19 @@ start; it explains every setting and can also be edited directly:
 
 With `Colors=1` the plugin draws the item itself. TrafficMonitor does not pass its own label from the display
 settings to self-drawing plugins, so `Label` applies. With `Colors=0` the label from TrafficMonitor's display
-settings applies.
+settings applies. Spaces around the label are ignored, and a label ending in full-width punctuation such as
+`耳机：` gets no extra gap before the value, since the character brings its own.
 
 For other Bluetooth headphones, enter part of their name under "Device" / `NameContains` – provided Windows
 knows their battery level (Settings → Bluetooth & devices).
+
+## Language
+
+The plugin follows TrafficMonitor's language setting: English or Simplified Chinese (简体中文). Translated are
+the plugin and item names, the tooltip, the low-battery notification and the settings window; the log and
+`BatteryProbe` stay in English. Every Chinese variant gets Simplified Chinese. Corrections and further
+languages are welcome as pull requests (`src/utils/Lang.cpp` and a dialog template in
+`PeripheralBatteryPlugin.rc`).
 
 ## Behavior
 

@@ -13,6 +13,7 @@
 #include "hidpp/HidppListener.h"
 #include "providers/LogitechHidppProvider.h"
 #include "providers/WindowsBluetoothProvider.h"
+#include "utils/Lang.h"
 #include "utils/Logger.h"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
@@ -268,7 +269,7 @@ void BatteryManager::CheckLowBattery(Device& device, const BatteryStatus& shown,
 
     device.lowWarned = true;
     const std::wstring name = shown.deviceName.empty() ? std::wstring(device.label) : shown.deviceName;
-    const std::wstring message = L"Low battery: " + name + L" – " + std::to_wstring(shown.percentage) + L"%";
+    const std::wstring message = lang::Tr(lang::Text::LowBattery) + name + L" – " + std::to_wstring(shown.percentage) + L"%";
     logging::Info(std::wstring(device.label) + L": warning shown – " + message);
 
     std::function<void(std::wstring)> notify;

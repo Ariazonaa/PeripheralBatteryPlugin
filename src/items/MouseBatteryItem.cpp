@@ -1,10 +1,11 @@
 #include "items/MouseBatteryItem.h"
 
 #include "battery/BatteryManager.h"
+#include "utils/Lang.h"
 
 const wchar_t* MouseBatteryItem::GetItemName() const
 {
-    return L"Mouse Battery";
+    return lang::Tr(lang::Text::MouseItem);
 }
 
 const wchar_t* MouseBatteryItem::GetItemId() const
@@ -15,7 +16,7 @@ const wchar_t* MouseBatteryItem::GetItemId() const
 const wchar_t* MouseBatteryItem::GetItemLableText() const
 {
     // Default label when TrafficMonitor draws (Colors=0); it stores changes itself.
-    return L"Mouse ";
+    return lang::Tr(lang::Text::MouseLabel);
 }
 
 BatteryStatus MouseBatteryItem::ReadStatus() const

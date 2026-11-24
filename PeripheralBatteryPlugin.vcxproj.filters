@@ -78,6 +78,9 @@
     <ClCompile Include="src\providers\WindowsBluetoothProvider.cpp">
       <Filter>src\providers</Filter>
     </ClCompile>
+    <ClCompile Include="src\utils\Lang.cpp">
+      <Filter>src\utils</Filter>
+    </ClCompile>
     <ClCompile Include="src\utils\Logger.cpp">
       <Filter>src\utils</Filter>
     </ClCompile>
@@ -148,6 +151,9 @@
     </ClInclude>
     <ClInclude Include="src\providers\WindowsBluetoothProvider.h">
       <Filter>src\providers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\utils\Lang.h">
+      <Filter>src\utils</Filter>
     </ClInclude>
     <ClInclude Include="src\utils\Logger.h">
       <Filter>src\utils</Filter>

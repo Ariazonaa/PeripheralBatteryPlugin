@@ -4,6 +4,7 @@
 #include <ctime>
 
 #include "battery/BatteryManager.h"
+#include "utils/Lang.h"
 
 namespace
 {
@@ -13,12 +14,46 @@ namespace
         return options.showCharging ? L"⚡100%" : L"100%";
     }
 
-    // Gap between label and value: one space, like the "M4 " in the default label,
-    // which TrafficMonitor draws without a separator of its own.
-    int GapWidth(HDC dc)
+    // Width as DrawTextW draws it, i.e. with font fallback (e.g. for "⚡"). Width reservation and drawing
+    // must measure the same way: drawing used GetTextExtentPoint32W, which measures without DrawTextW's
+    // fallback, so for such characters the value did not start where the reserved width expected it.
+    int TextWidth(HDC dc, const std::wstring& text)
     {
+        if (text.empty())
+            return 0;
+        RECT r{};
+        DrawTextW(dc, text.c_str(), static_cast<int>(text.size()), &r, DT_CALCRECT | DT_SINGLELINE | DT_NOPREFIX);
+        return static_cast<int>(r.right - r.left);
+    }
+
+    // Full-width punctuation (CJK symbols U+3000–U+303F, full-width forms U+FF01–U+FF0F, U+FF1A–U+FF20)
+    // carries its own space inside the glyph, e.g. "鼠标：".
+    bool EndsWithFullWidthPunctuation(const std::wstring& label)
+    {
+        if (label.empty())
+            return false;
+        const wchar_t c = label.back();
+        return (c >= 0x3000 && c <= 0x303F) || (c >= 0xFF01 && c <= 0xFF0F) || (c >= 0xFF1A && c <= 0xFF20);
+    }
+
+    // Gap between label and value: one space, like the "M4 " in the default label, which TrafficMonitor
+    // draws without a separator of its own. None after full-width punctuation, which brings its own.
+    int GapWidth(HDC dc, const std::wstring& label)
+    {
+        if (label.empty() || EndsWithFullWidthPunctuation(label))
+            return 0;
         SIZE size{};
         return GetTextExtentPoint32W(dc, L" ", 1, &size) ? size.cx : 0;
+    }
+
+    // Spaces around the label would add to the gap ("Mouse " + gap = two spaces).
+    std::wstring TrimLabel(std::wstring label)
+    {
+        // U+3000: ideographic (full-width) space
+        const auto notSpace = [](wchar_t c) { return c != L' ' && c != L'\t' && c != L'　'; };
+        label.erase(label.begin(), std::find_if(label.begin(), label.end(), notSpace));
+        label.erase(std::find_if(label.rbegin(), label.rend(), notSpace).base(), label.end());
+        return label;
     }
 }
 
@@ -88,7 +123,7 @@ int BatteryItem::GetItemWidthEx(void* hDC) const
         if (dc == nullptr)
             return 0;
         const DisplayOptions options = EffectiveDisplayOptions();
-        return MeasureWidth(dc, ReadLabel(options), SampleText(options));
+        return MeasureWidth(dc, TrimLabel(ReadLabel(options)), SampleText(options));
     }
     catch (...)
     {
@@ -111,7 +146,7 @@ void BatteryItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mode
         const COLORREF labelColor = drawContext_.taskbar && drawContext_.hasLabelColor ? drawContext_.labelColor : normal;
         const COLORREF valueColor = ToneColor(ToneFor(status, manager_.GetLowBatteryWarning()), normal, dark_mode);
         const RECT rect{ x, y, x + w, y + h };
-        DrawLabelValue(dc, rect, ReadLabel(options), labelColor, FormatValue(status, options), valueColor,
+        DrawLabelValue(dc, rect, TrimLabel(ReadLabel(options)), labelColor, FormatValue(status, options), valueColor,
             drawContext_.taskbar && drawContext_.valueRightAlign);
     }
     catch (...)
@@ -150,15 +185,7 @@ COLORREF BatteryItem::ToneColor(Tone tone, COLORREF normal, bool darkMode)
 
 int BatteryItem::MeasureWidth(HDC dc, const std::wstring& label, const std::wstring& value)
 {
-    auto textWidth = [dc](const std::wstring& text) {
-        if (text.empty())
-            return 0;
-        // DT_CALCRECT measures like DrawTextW, i.e. with font fallback (e.g. for "⚡").
-        RECT r{};
-        DrawTextW(dc, text.c_str(), static_cast<int>(text.size()), &r, DT_CALCRECT | DT_SINGLELINE | DT_NOPREFIX);
-        return static_cast<int>(r.right - r.left);
-    };
-    return (label.empty() ? 0 : textWidth(label) + GapWidth(dc)) + textWidth(value);
+    return TextWidth(dc, label) + GapWidth(dc, label) + TextWidth(dc, value);
 }
 
 void BatteryItem::DrawLabelValue(HDC dc, const RECT& rect, const std::wstring& label, COLORREF labelColor,
@@ -174,9 +201,7 @@ void BatteryItem::DrawLabelValue(HDC dc, const RECT& rect, const std::wstring& l
         RECT labelRect = rect;
         SetTextColor(dc, labelColor);
         DrawTextW(dc, label.c_str(), static_cast<int>(label.size()), &labelRect, DT_LEFT | kFlags);
-        SIZE size{};
-        GetTextExtentPoint32W(dc, label.c_str(), static_cast<int>(label.size()), &size);
-        valueRect.left = std::min(rect.right, rect.left + size.cx + GapWidth(dc));
+        valueRect.left = std::min(rect.right, rect.left + TextWidth(dc, label) + GapWidth(dc, label));
     }
     if (!value.empty())
     {
@@ -218,23 +243,24 @@ std::wstring BatteryItem::FormatValue(const BatteryStatus& status, const Display
 
 std::wstring BatteryItem::FormatTooltipLine(const wchar_t* label, const BatteryStatus& status)
 {
-    std::wstring line = std::wstring(label) + L": ";
+    std::wstring line = std::wstring(label) + lang::Tr(lang::Text::LabelSeparator);
     if (!status.deviceName.empty())
         line += status.deviceName + L" – ";
 
     if (status.state == BatteryState::Disconnected)
-        return line + L"not connected";
+        return line + lang::Tr(lang::Text::NotConnected);
     if (!status.available)
-        return line + L"no value";
+        return line + lang::Tr(lang::Text::NoValue);
 
     const std::wstring percent = status.percentage >= 0 ? std::to_wstring(status.percentage) + L"%" : L"";
     switch (status.state)
     {
     case BatteryState::Charging:
-        line += percent.empty() ? L"charging" : L"charging, " + percent;
+        line += percent.empty() ? std::wstring(lang::Tr(lang::Text::Charging))
+                                 : lang::Tr(lang::Text::ChargingWithPercent) + percent;
         break;
     case BatteryState::Full:
-        line += L"full";
+        line += lang::Tr(lang::Text::Full);
         break;
     default:
         line += percent.empty() ? L"?" : percent;
@@ -251,11 +277,11 @@ std::wstring BatteryItem::FormatTooltipLine(const wchar_t* label, const BatteryS
         {
             wchar_t stamp[16];
             swprintf_s(stamp, L"%02d:%02d", local.tm_hour, local.tm_min);
-            line += std::wstring(L", as of ") + stamp;
+            line += std::wstring(lang::Tr(lang::Text::AsOf)) + stamp;
         }
     }
     // The dropout filter shows the last value even though the current query failed.
     if (!status.error.empty())
-        line += L", currently unreachable";
+        line += lang::Tr(lang::Text::Unreachable);
     return line;
 }

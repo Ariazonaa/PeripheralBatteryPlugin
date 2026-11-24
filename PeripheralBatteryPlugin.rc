@@ -8,7 +8,10 @@
 // Default configuration: the same file that also ships in the release zip.
 IDR_DEFAULT_CONFIG RCDATA "config\\PeripheralBattery.ini"
 
-// Settings window (ITMPlugin::ShowOptionsDialog), logic in src/ui/OptionsDialog.cpp
+// Settings window (ITMPlugin::ShowOptionsDialog), logic in src/ui/OptionsDialog.cpp.
+// Two templates with the same IDs: English and Simplified Chinese (at the end of the file). RunOptionsDialog
+// loads the one for TrafficMonitor's language; layout changes go into both.
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 IDD_OPTIONS DIALOGEX 0, 0, 320, 250
 STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Peripheral Battery – Settings"
@@ -77,4 +80,47 @@ BEGIN
     BEGIN
         VALUE "Translation", 0x0409, 1200
     END
+END
+
+// Settings window in Simplified Chinese: same layout and IDs as the English one above.
+LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
+IDD_OPTIONS DIALOGEX 0, 0, 320, 250
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "外设电量 – 设置"
+FONT 9, "Microsoft YaHei UI", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "常规", IDC_STATIC, 7, 7, 306, 94
+    LTEXT           "查询间隔：", IDC_STATIC, 15, 22, 70, 8
+    EDITTEXT        IDC_INTERVAL, 90, 20, 32, 12, ES_NUMBER | ES_AUTOHSCROLL
+    LTEXT           "秒（15 到 3600）", IDC_STATIC, 127, 22, 150, 8
+    LTEXT           "警告阈值：", IDC_STATIC, 15, 38, 70, 8
+    EDITTEXT        IDC_LOW_WARNING, 90, 36, 32, 12, ES_NUMBER | ES_AUTOHSCROLL
+    LTEXT           "% 电量（0 = 不警告）", IDC_STATIC, 127, 38, 150, 8
+    AUTOCHECKBOX    "彩色：电量低时显示红色，充电时显示绿色", IDC_COLORS, 15, 54, 290, 10
+    AUTOCHECKBOX    "显示 % 符号", IDC_SHOW_PERCENT, 15, 69, 90, 10
+    AUTOCHECKBOX    "断开时显示“—”", IDC_SHOW_DISCONNECTED, 110, 69, 95, 10
+    AUTOCHECKBOX    "充电时显示“⚡”", IDC_SHOW_CHARGING, 210, 69, 95, 10
+    AUTOCHECKBOX    "详细日志（记录每次查询）", IDC_VERBOSE, 15, 84, 290, 10
+
+    GROUPBOX        "耳机", IDC_STATIC, 7, 106, 150, 82
+    AUTOCHECKBOX    "查询设备", IDC_HP_ENABLED, 15, 120, 130, 10
+    LTEXT           "来源：", IDC_STATIC, 15, 137, 45, 8
+    COMBOBOX        IDC_HP_PROVIDER, 62, 135, 88, 60, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "设备：", IDC_STATIC, 15, 153, 45, 8
+    COMBOBOX        IDC_HP_NAME, 62, 151, 88, 90, CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "标签：", IDC_STATIC, 15, 169, 45, 8
+    EDITTEXT        IDC_HP_LABEL, 62, 167, 88, 12, ES_AUTOHSCROLL
+
+    GROUPBOX        "鼠标", IDC_STATIC, 163, 106, 150, 82
+    AUTOCHECKBOX    "查询设备", IDC_MS_ENABLED, 171, 120, 130, 10
+    LTEXT           "来源：", IDC_STATIC, 171, 137, 45, 8
+    COMBOBOX        IDC_MS_PROVIDER, 218, 135, 88, 60, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "设备：", IDC_STATIC, 171, 153, 45, 8
+    COMBOBOX        IDC_MS_NAME, 218, 151, 88, 90, CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "标签：", IDC_STATIC, 171, 169, 45, 8
+    EDITTEXT        IDC_MS_LABEL, 218, 167, 88, 12, ES_AUTOHSCROLL
+
+    LTEXT           "设备：填写设备名称的一部分；罗技留空 = 使用找到的第一个设备。开启“彩色”时使用此处的标签，否则请在 TrafficMonitor 的“显示设置”中设置标签。", IDC_HINT, 7, 194, 306, 26
+    DEFPUSHBUTTON   "确定", IDOK, 207, 228, 50, 14
+    PUSHBUTTON      "取消", IDCANCEL, 263, 228, 50, 14
 END

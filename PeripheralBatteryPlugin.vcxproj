@@ -95,6 +95,7 @@
     <ClCompile Include="src\items\MouseBatteryItem.cpp" />
     <ClCompile Include="src\providers\LogitechHidppProvider.cpp" />
     <ClCompile Include="src\providers\WindowsBluetoothProvider.cpp" />
+    <ClCompile Include="src\utils\Lang.cpp" />
     <ClCompile Include="src\utils\Logger.cpp" />
     <ClCompile Include="src\utils\UiNotifier.cpp" />
     <ClCompile Include="src\ui\OptionsDialog.cpp" />
@@ -120,6 +121,7 @@
     <ClInclude Include="src\items\MouseBatteryItem.h" />
     <ClInclude Include="src\providers\LogitechHidppProvider.h" />
     <ClInclude Include="src\providers\WindowsBluetoothProvider.h" />
+    <ClInclude Include="src\utils\Lang.h" />
     <ClInclude Include="src\utils\Logger.h" />
     <ClInclude Include="src\utils\UiNotifier.h" />
     <ClInclude Include="src\ui\OptionsDialog.h" />
