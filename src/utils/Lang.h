@@ -15,10 +15,11 @@ namespace lang
         HeadphonesItem,         // item name in TrafficMonitor's display settings
         MouseItem,
         MouseLabel,             // default label of the mouse item ("Mouse "), with trailing space
-        MouseLabelIni,          // Label= for [Mouse] in a newly created INI
+        MouseLabelIni,          // default Label= for [Mouse]
         Headphones,             // tooltip
         Mouse,
         LabelSeparator,         // ": " after the device in the tooltip
+        DeviceNameSeparator,    // separator between the device name and its status
         NotConnected,
         NoValue,
         Charging,
@@ -33,6 +34,9 @@ namespace lang
         IntervalRange,
         WarningRange,
         SaveFailed,
+        SettingsFileTooLarge,
+        SettingsPathMissing,
+        ErrorCode,
     };
 
     void SetLanguage(LANGID id);    // 0 = Windows UI language

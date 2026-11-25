@@ -26,7 +26,7 @@ namespace lang
         constexpr Entry kTexts[] = {
             { L"Peripheral Battery", L"外设电量" },
             { L"Shows the battery level of peripheral devices (headphones, mouse) in the taskbar.",
-              L"在任务栏中显示外设（耳机、鼠标）的电量。" },
+              L"在任务栏显示耳机和鼠标的电量。" },
             { L"Headphones Battery", L"耳机电量" },
             { L"Mouse Battery", L"鼠标电量" },
             { L"Mouse ", L"鼠标 " },
@@ -34,23 +34,27 @@ namespace lang
             { L"Headphones", L"耳机" },
             { L"Mouse", L"鼠标" },
             { L": ", L"：" },
+            { L" – ", L" · " },
             { L"not connected", L"未连接" },
-            { L"no value", L"暂无数值" },
+            { L"no value", L"暂未获取电量" },
             { L"charging", L"充电中" },
             { L"charging, ", L"充电中，" },
             { L"full", L"已充满" },
             { L", as of ", L"，更新于 " },
-            { L", currently unreachable", L"，当前无法连接" },
-            { L"Low battery: ", L"电量低：" },
+            { L", currently unreachable", L"，暂时无法读取电量" },
+            { L"Low battery: ", L"电量不足：" },
             { L"Windows Bluetooth", L"Windows 蓝牙" },
-            { L"Logitech (HID++)", L"罗技 (HID++)" },
-            { L"(none)", L"（无）" },
-            { L"The poll interval must be between 15 and 3600 seconds.", L"查询间隔必须在 15 到 3600 秒之间。" },
+            { L"Logitech (HID++)", L"罗技（HID++）" },
+            { L"(none)", L"（未设置）" },
+            { L"The poll interval must be between 15 and 3600 seconds.", L"刷新间隔必须在 15～3600 秒之间。" },
             { L"The warning threshold must be between 0 and 100 percent (0 = no warning).",
-              L"警告阈值必须在 0 到 100% 之间（0 = 不警告）。" },
+              L"请输入 0～100 之间的整数。设为 0 时关闭低电量提醒。" },
             { L"The settings could not be saved.", L"无法保存设置。" },
+            { L"The settings file is unexpectedly large.", L"配置文件过大。" },
+            { L"No path known for the settings file.", L"未能确定配置文件的保存位置。" },
+            { L"Error ", L"错误代码：" },
         };
-        static_assert(std::size(kTexts) == static_cast<size_t>(Text::SaveFailed) + 1, "kTexts out of sync with lang::Text");
+        static_assert(std::size(kTexts) == static_cast<size_t>(Text::ErrorCode) + 1, "kTexts out of sync with lang::Text");
     }
 
     void SetLanguage(LANGID id)

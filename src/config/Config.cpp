@@ -54,11 +54,12 @@ namespace
 
 Config LoadConfig(const std::wstring& path)
 {
-    const Config defaults;
-    Config config;
+    Config defaults;
+    defaults.display.mouseLabel = lang::Tr(lang::Text::MouseLabelIni);
     if (path.empty() || GetFileAttributesW(path.c_str()) == INVALID_FILE_ATTRIBUTES)
-        return config;
+        return defaults;
 
+    Config config = defaults;
     config.updateIntervalSeconds = std::clamp(
         ReadInt(path, L"General", L"UpdateInterval", defaults.updateIntervalSeconds),
         Config::kMinInterval, Config::kMaxInterval);
@@ -82,7 +83,7 @@ int AddMissingKeys(const std::wstring& path)
         return 0;
 
     struct Key { const wchar_t* section; const wchar_t* name; const wchar_t* value; };
-    static constexpr Key kKeys[] = {
+    const Key kKeys[] = {
         { L"General", L"UpdateInterval", L"60" },
         { L"General", L"ShowDisconnected", L"1" },
         { L"General", L"ShowPercentSign", L"1" },
@@ -91,7 +92,7 @@ int AddMissingKeys(const std::wstring& path)
         { L"General", L"Colors", L"1" },
         { L"General", L"VerboseLogging", L"0" },
         { L"Headphones", L"Label", L"M4" },
-        { L"Mouse", L"Label", L"Mouse" },
+        { L"Mouse", L"Label", lang::Tr(lang::Text::MouseLabelIni) },
     };
     constexpr wchar_t kMissing[] = L"\x1F<missing>";
 
@@ -113,8 +114,10 @@ namespace
     {
         wchar_t* text = nullptr;
         const DWORD length = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
-                | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, code, 0, reinterpret_cast<wchar_t*>(&text), 0, nullptr);
-        std::wstring result = length > 0 ? std::wstring(text, length) : L"Error " + std::to_wstring(code);
+                | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, code, lang::DialogLanguage(),
+                reinterpret_cast<wchar_t*>(&text), 0, nullptr);
+        std::wstring result = length > 0 ? std::wstring(text, length)
+                                        : lang::Tr(lang::Text::ErrorCode) + std::to_wstring(code);
         if (text != nullptr)
             LocalFree(text);
         while (!result.empty() && (result.back() == L'\n' || result.back() == L'\r' || result.back() == L' '))
@@ -149,7 +152,7 @@ namespace
             CloseHandle(file);
             if (!ok)
             {
-                error = sized ? ErrorText(code) : L"The settings file is unexpectedly large.";
+                error = sized ? ErrorText(code) : lang::Tr(lang::Text::SettingsFileTooLarge);
                 return false;
             }
         }
@@ -196,7 +199,7 @@ bool SaveConfig(const std::wstring& path, const Config& config, std::wstring& er
 {
     if (path.empty())
     {
-        error = L"No path known for the settings file.";
+        error = lang::Tr(lang::Text::SettingsPathMissing);
         return false;
     }
     if (GetFileAttributesW(path.c_str()) == INVALID_FILE_ATTRIBUTES)

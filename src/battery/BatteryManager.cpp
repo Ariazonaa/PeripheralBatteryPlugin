@@ -241,7 +241,7 @@ bool BatteryManager::IsMouseEnabled() const
 }
 
 void BatteryManager::CheckLowBattery(Device& device, const BatteryStatus& shown, const BatteryStatus& raw,
-    int threshold)
+    int threshold, const wchar_t* fallbackName)
 {
     // Only warn once the previous measurement also had a value: right after connecting, Windows
     // still reports the Bluetooth device's value from the last session until HFP is set up
@@ -268,9 +268,12 @@ void BatteryManager::CheckLowBattery(Device& device, const BatteryStatus& shown,
         return;
 
     device.lowWarned = true;
-    const std::wstring name = shown.deviceName.empty() ? std::wstring(device.label) : shown.deviceName;
-    const std::wstring message = lang::Tr(lang::Text::LowBattery) + name + L" – " + std::to_wstring(shown.percentage) + L"%";
-    logging::Info(std::wstring(device.label) + L": warning shown – " + message);
+    const std::wstring percent = std::to_wstring(shown.percentage) + L"%";
+    const std::wstring name = shown.deviceName.empty() ? fallbackName : shown.deviceName;
+    const std::wstring message = lang::Tr(lang::Text::LowBattery) + name
+        + lang::Tr(lang::Text::DeviceNameSeparator) + percent;
+    const std::wstring logName = shown.deviceName.empty() ? device.label : shown.deviceName;
+    logging::Info(std::wstring(device.label) + L": warning shown – Low battery: " + logName + L" – " + percent);
 
     std::function<void(std::wstring)> notify;
     {
@@ -363,8 +366,9 @@ void BatteryManager::WorkerLoop() noexcept
             LogResult(mouse_, rawMouse, mouse);
             CheckChargeEnd(headphones_, rawHeadphones);
             CheckChargeEnd(mouse_, rawMouse);
-            CheckLowBattery(headphones_, headphones, rawHeadphones, config.lowBatteryWarning);
-            CheckLowBattery(mouse_, mouse, rawMouse, config.lowBatteryWarning);
+            CheckLowBattery(headphones_, headphones, rawHeadphones, config.lowBatteryWarning,
+                lang::Tr(lang::Text::Headphones));
+            CheckLowBattery(mouse_, mouse, rawMouse, config.lowBatteryWarning, lang::Tr(lang::Text::Mouse));
 
             std::lock_guard lock(mutex_);
             headphonesStatus_ = std::move(headphones);
