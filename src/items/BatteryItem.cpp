@@ -245,7 +245,7 @@ std::wstring BatteryItem::FormatTooltipLine(const wchar_t* label, const BatteryS
 {
     std::wstring line = std::wstring(label) + lang::Tr(lang::Text::LabelSeparator);
     if (!status.deviceName.empty())
-        line += status.deviceName + L" – ";
+        line += status.deviceName + lang::Tr(lang::Text::DeviceNameSeparator);
 
     if (status.state == BatteryState::Disconnected)
         return line + lang::Tr(lang::Text::NotConnected);

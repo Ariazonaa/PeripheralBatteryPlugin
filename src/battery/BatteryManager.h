@@ -87,7 +87,8 @@ private:
     void CheckChargeEnd(Device& device, const BatteryStatus& raw);
     static BatteryStatus Query(IBatteryProvider* provider);
     static void LogResult(Device& device, const BatteryStatus& raw, const BatteryStatus& shown);
-    void CheckLowBattery(Device& device, const BatteryStatus& shown, const BatteryStatus& raw, int threshold);
+    void CheckLowBattery(Device& device, const BatteryStatus& shown, const BatteryStatus& raw, int threshold,
+        const wchar_t* fallbackName);
 
     std::once_flag workerStarted_;
 
