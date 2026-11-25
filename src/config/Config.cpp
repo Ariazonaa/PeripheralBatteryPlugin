@@ -112,14 +112,24 @@ namespace
 {
     std::wstring ErrorText(DWORD code)
     {
-        wchar_t* text = nullptr;
-        const DWORD length = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
-                | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, code, lang::DialogLanguage(),
-                reinterpret_cast<wchar_t*>(&text), 0, nullptr);
-        std::wstring result = length > 0 ? std::wstring(text, length)
-                                        : lang::Tr(lang::Text::ErrorCode) + std::to_wstring(code);
-        if (text != nullptr)
-            LocalFree(text);
+        // In the plugin's language if Windows has its system messages installed, otherwise in the Windows
+        // language (0) – e.g. TrafficMonitor set to Chinese on an English Windows.
+        std::wstring result;
+        for (const DWORD language : { static_cast<DWORD>(lang::DialogLanguage()), DWORD{ 0 } })
+        {
+            wchar_t* text = nullptr;
+            const DWORD length = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
+                    | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, code, language,
+                    reinterpret_cast<wchar_t*>(&text), 0, nullptr);
+            if (length > 0)
+                result.assign(text, length);
+            if (text != nullptr)
+                LocalFree(text);
+            if (!result.empty())
+                break;
+        }
+        if (result.empty())
+            result = lang::Tr(lang::Text::ErrorCode) + std::to_wstring(code);
         while (!result.empty() && (result.back() == L'\n' || result.back() == L'\r' || result.back() == L' '))
             result.pop_back();
         return result;
