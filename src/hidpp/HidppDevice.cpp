@@ -322,6 +322,7 @@ std::optional<HidppBattery> HidppDevice::ReadBatteryAt(uint16_t feature, uint8_t
     else
     {
         battery.percentage = reply[0];
+        battery.charge = hidpp::DecodeBatteryStatus(reply[2]);
     }
     return battery;
 }

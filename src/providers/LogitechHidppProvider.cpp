@@ -236,6 +236,15 @@ void LogitechHidppProvider::Refresh()
             status.state = BatteryState::Charging;
             status.percentage = std::min(shown, 99);
         }
+        else if (battery && battery->charge == hidpp::ChargeState::Charging && battery->percentage)
+        {
+            // 0x1000/0x1004: the device reports a real charge level, no estimate needed. As above,
+            // 100% is reserved for the device's own "full".
+            status.available = true;
+            status.state = BatteryState::Charging;
+            status.percentage = std::min(*battery->percentage, 99);
+            chargeStart_.reset();
+        }
         else if (battery && battery->charge == hidpp::ChargeState::Full)
         {
             status.available = true;

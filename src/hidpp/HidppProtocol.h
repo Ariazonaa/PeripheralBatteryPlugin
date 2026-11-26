@@ -104,6 +104,23 @@ namespace hidpp
         }
     }
 
+    // 0x1000/0x1004 status byte (byte 2 of the reply). Values from Solaar, lib/logitech_receiver/common.py,
+    // class BatteryStatus: 0 discharging, 1 recharging, 2 almost full, 3 full, 4 slow recharge,
+    // 5 invalid battery, 6 thermal error. "Almost full" and "slow recharge" are still charging; the error
+    // states stay Unknown. Checked on a G502 X LIGHTSPEED (0x1004): 0x00 on battery.
+    inline ChargeState DecodeBatteryStatus(uint8_t status)
+    {
+        switch (status)
+        {
+        case 0: return ChargeState::Discharging;
+        case 1:
+        case 2:
+        case 4: return ChargeState::Charging;
+        case 3: return ChargeState::Full;
+        default: return ChargeState::Unknown;
+        }
+    }
+
     inline LongReport BuildLongRequest(uint8_t deviceIndex, uint8_t featureIndex, uint8_t function,
         uint8_t softwareId, std::initializer_list<uint8_t> params)
     {

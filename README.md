@@ -9,7 +9,7 @@ level of peripheral devices as separate items in the taskbar:
 | Item | Source | Tested with |
 |---|---|---|
 | **Headphones Battery** | Bluetooth battery level as known to Windows – no vendor app needed | Sennheiser MOMENTUM 4 |
-| **Mouse Battery** | Logitech mouse queried directly via HID++ through the LIGHTSPEED / Unifying / Bolt receiver – no G Hub needed | Logitech G502 LIGHTSPEED |
+| **Mouse Battery** | Logitech mouse queried directly via HID++ through the LIGHTSPEED / Unifying / Bolt receiver – no G Hub needed | Logitech G502 LIGHTSPEED, G502 X LIGHTSPEED |
 
 ![Taskbar with Headphones Battery and Mouse Battery](docs/taskbar.png)
 
@@ -17,7 +17,7 @@ level of peripheral devices as separate items in the taskbar:
 
 | Value | Meaning |
 |---|---|
-| `82%` | battery level (while the mouse charges: an estimated level, see below) |
+| `82%` | battery level (while a voltage-only mouse charges: an estimated level, see below) |
 | `100%` | full (e.g. the mouse on the cable) |
 | `—` | not connected, switched off or asleep |
 | `?` | no value yet, or the device does not respond |
@@ -31,8 +31,9 @@ current the voltage reads higher than at rest, so while charging the mouse shows
 (green as a charging hint): starting from the charge-compensated voltage (offset 137 mV, calibrated on the
 G502), the shown value creeps up towards full over the estimated charge time, so it does not stick near full
 (where the voltage barely rises while the battery keeps filling). `100%` appears only once the mouse itself
-reports "full". It is an approximation and can differ from the device's own gauge (e.g. G Hub). Windows reports
-the MOMENTUM 4's battery level in 10% steps.
+reports "full". It is an approximation and can differ from the device's own gauge (e.g. G Hub). Mice that report
+a real charge level (e.g. G502 X LIGHTSPEED) show it as is, also while charging. Windows reports the
+MOMENTUM 4's battery level in 10% steps.
 
 ## Installation
 
@@ -143,7 +144,7 @@ MIT, see [LICENSE](LICENSE).
   [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) (V1.86) and is covered by its license
   (`external/TrafficMonitor/LICENSE`).
 - HID++ protocol details based on Logitech's [cpg-docs](https://github.com/Logitech/cpg-docs) and
-  [logitray](https://github.com/Ithilias/logitray) (MIT); the data points of the voltage curve come from
-  [Solaar](https://github.com/pwr-Solaar/Solaar).
+  [logitray](https://github.com/Ithilias/logitray) (MIT); the data points of the voltage curve and the
+  charging status codes come from [Solaar](https://github.com/pwr-Solaar/Solaar).
 - The battery level of Bluetooth devices comes from an undocumented device property set by Windows (also used
   by e.g. [WmiPnp](https://github.com/nikvoronin/WmiPnp)).
